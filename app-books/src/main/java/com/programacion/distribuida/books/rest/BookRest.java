@@ -10,12 +10,15 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.stork.Stork;
 import io.smallrye.stork.api.Service;
 import io.smallrye.stork.api.ServiceInstance;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.modelmapper.ModelMapper;
 
@@ -37,15 +40,14 @@ public class BookRest {
 
     @Inject
     @RestClient
-    private AuthorRestClient authorRestClient;
+    private AuthorRestClient client;
 
     @GET
     @Path("/{isbn}")
-    public Response findById(@PathParam("isbn") String isbn) {
-
+    public Response findByIsbn(@PathParam("isbn") String isbn) {
         var stork = Stork.getInstance();
 
-        // Listar servicios
+        //--listar servicios
         Map<String, Service> services = stork.getServices();
 
         services.entrySet()
@@ -59,11 +61,12 @@ public class BookRest {
                             .transformToMulti(items -> Multi.createFrom().iterable(items));
 
                     instances.subscribe()
-                            .with(item -> {
+                            .with(item->{
                                 System.out.println("  " + item.getHost() + ":" + item.getPort());
                             });
                 });
 
+        //--seleccionar una instancia
         Service service = stork.getService("authors-api");
         Uni<ServiceInstance> instance = service.selectInstance();
         instance
@@ -72,26 +75,31 @@ public class BookRest {
                     System.out.println("**Instancia seleccionada: " + inst.getHost() + ":" + inst.getPort());
                 });
 
-        BookDto bookDto = new BookDto();
 
+        BookDto ret = new BookDto();
+
+        //1. buscar el libro
         var obj = booksRepository.findByIdOptional(isbn);
         if (obj.isEmpty()) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .build();
         }
-        mapper.map(obj.get(), bookDto);
-        var authors = authorRestClient.findByBook(isbn)
+        mapper.map(obj.get(), ret);
+
+        var authors = client.findByBook(isbn)
                 .stream()
                 .map(AuthorDto::getName)
                 .toList();
 
-        bookDto.setAuthors(authors);
-        return Response.ok(bookDto).build();
+        ret.setAuthors(authors);
+
+        return Response.ok(ret)
+                .build();
     }
 
-
     @GET
-//    @Path("/findAll")
     public List<BookDto> findAll() {
+
         return booksRepository.streamAll()
                 .map(book -> {
                     var dto = new BookDto();
@@ -99,7 +107,7 @@ public class BookRest {
                     return dto;
                 })
                 .map(book -> {
-                    var authors = authorRestClient.findByBook(book.getIsbn())
+                    var authors = client.findByBook(book.getIsbn())
                             .stream()
                             .map(AuthorDto::getName)
                             .toList();
@@ -119,5 +127,5 @@ public class BookRest {
     public void update(@PathParam("isbn") String isbn, Book book) {
         booksRepository.update(isbn, book);
     }
-
 }
+

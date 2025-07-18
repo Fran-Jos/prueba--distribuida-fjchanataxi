@@ -4,7 +4,7 @@ plugins {
     id("io.quarkus") version "3.22.2"
 }
 
-group = "org.example"
+group = "com.programacion.distribuida"
 version = "unspecified"
 
 repositories {
@@ -13,44 +13,47 @@ repositories {
 
 val quarkusVersion = "3.22.2"
 
-// Compatibilidad (compilar con JDK 21)
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencies {
-    implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:${quarkusVersion}"))
 
-    // Contenedor CDI
-    implementation("io.quarkus:quarkus-arc") //Usa CDI 4.1
+    //CDI
+    implementation("io.quarkus:quarkus-arc")
 
-
-    // Contenedor de REST
-    implementation("io.quarkus:quarkus-rest") //Es implmentacion de jax rs
+    //REST
+    implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-jsonb")
 
-    // Librerias para consumir servicios
-    implementation("io.quarkus:quarkus-rest-client") //Es implmentacion de jax rs
+    implementation("io.quarkus:quarkus-rest-client")
     implementation("io.quarkus:quarkus-rest-client-jsonb")
 
-    // Contenedor de JPA
+    //JPA
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("org.modelmapper:modelmapper:3.2.3") // Libreria para mapear objetos
 
-    // Control versiones base de datos
-    implementation("io.quarkus:quarkus-flyway")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.modelmapper:modelmapper:3.2.3")
 
-    // Service discovery
+    //Service Discovery
+//    implementation("io.quarkus:quarkus-smallrye-stork")
+//    implementation("io.smallrye.stork:stork-service-discovery-static-list")
+
+//Service Discovery Dinamico
     implementation("io.quarkus:quarkus-smallrye-stork")
     implementation("io.smallrye.stork:stork-service-discovery-consul")
+    //Vertex Consul Client
     implementation("io.smallrye.reactive:smallrye-mutiny-vertx-consul-client")
-
-    // Fault Tolerance (Resiliencia)
+//Resilience
     implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
+
+    //health check
+    implementation("io.quarkus:quarkus-smallrye-health")
+
+    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+    implementation("io.quarkus:quarkus-jackson")
 
 }
 
@@ -58,3 +61,6 @@ tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
 }
+
+
+

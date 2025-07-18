@@ -5,12 +5,13 @@ import jakarta.persistence.Embeddable;
 import lombok.Getter;
 import lombok.Setter;
 
+@Embeddable
 @Getter
 @Setter
-@Embeddable
 public class BookAuthorId {
-    @Column(name = "books_isbn")
+    @Column(name="books_isbn")
     private String bookIsbn;
-    @Column(name = "authors_id")
+
+    @Column(name="authors_id")
     private Integer authorId;
 }

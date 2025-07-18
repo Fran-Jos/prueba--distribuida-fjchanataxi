@@ -7,11 +7,6 @@ CREATE TABLE books
     CONSTRAINT pk_books PRIMARY KEY (isbn)
 );
 
-insert into books (isbn, title, price, version) values('1111', 'libro1', 10.00, 1);
-insert into books (isbn, title, price, version) values('2222', 'libro2', 20.00, 1);
-insert into books (isbn, title, price, version) values('3333', 'libro3', 30.00, 1);
-insert into books (isbn, title, price, version) values('4444', 'libro4', 40.00, 1);
-
 CREATE TABLE inventory
 (
     isbn     VARCHAR(255) NOT NULL,
@@ -25,3 +20,8 @@ ALTER TABLE inventory
 
 ALTER TABLE books_authors
     ADD CONSTRAINT FK_BOOKS_AUTHORS_ON_BOOKS FOREIGN KEY (books_isbn) REFERENCES books (isbn);
+
+INSERT INTO public.books(isbn, title, price, version) VALUES
+                                                          ('978-0134685991', 'Effective Java',        50.00, 1),
+                                                          ('978-1492056355', 'MicroProfile Cookbook', 39.99, 1),
+                                                          ('978-1617292545', 'Spring in Action',      44.95, 1);

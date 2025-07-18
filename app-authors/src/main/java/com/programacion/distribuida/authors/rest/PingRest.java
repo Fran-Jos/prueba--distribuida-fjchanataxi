@@ -4,10 +4,10 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 
 @Path("/ping")
-public class PingRet {
+public class PingRest {
 
     @GET
     public String ping() {
-        return "Pong";
+        return "pong";
     }
 }

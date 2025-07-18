@@ -1,7 +1,7 @@
 package com.programacion.distribuida.authors.rest;
 
 import com.programacion.distribuida.authors.db.Author;
-import com.programacion.distribuida.authors.repo.AuthorRepo;
+import com.programacion.distribuida.authors.repo.AuthorRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -13,66 +13,64 @@ import org.eclipse.microprofile.config.inject.ConfigProperties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Path("/authors")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @ApplicationScoped
 public class AuthorRest {
-    @Inject
-    AuthorRepo authorRepo;
 
     @Inject
     @ConfigProperty(name = "quarkus.http.port")
     Integer httpPort;
 
+    @Inject
+    AuthorRepository authorRepository;
+
+    AtomicInteger index = new AtomicInteger(1);
+
     @GET
     @Path("/{id}")
     public Response findById(@PathParam("id") Integer id) {
-        var obj = authorRepo.findByIdOptional(id);
-        if (obj.isEmpty()) {
+        var obj = authorRepository.findByIdOptional(id);
 
+        if (obj.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
+
         return Response.ok(obj.get()).build();
     }
-
 
     @GET
     public List<Author> findAll() {
-        return authorRepo.listAll();
-    }
-
-    @PUT
-    @Path("/{id}")
-    public Response update(@PathParam("id") Integer id, Author author) {
-        var obj = authorRepo.findByIdOptional(id);
-        if (obj.isEmpty()) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        authorRepo.update(id, author);
-        return Response.ok(obj.get()).build();
+        return authorRepository.listAll();
     }
 
     @GET
     @Path("/find/{isbn}")
     public List<Author> findByBook(@PathParam("isbn") String isbn) {
 
-        Config config = ConfigProvider.getConfig();
 
 
-        config.getConfigSources().forEach(
-                obj -> System.out.printf(
-                        "%d -> %s\n", obj.getOrdinal(), obj.getName()
-                )
-        );
+//        Config config = ConfigProvider.getConfig();
+//        var puerto = config.getValue("quarkus.http.port", Integer.class);
 
-        var ret = authorRepo.findByBook(isbn);
+       Config config = ConfigProvider.getConfig();
+        config.getConfigSources()
+                .forEach(
+                     obj ->
+                                System.out.printf("%d -> %s\n", obj.getOrdinal(), obj.getName())
 
-        return ret.stream().map(obj -> {
-            String newName = String.format("%s (%d)", obj.getName(), httpPort);
-            obj.setName(newName);
-            return obj;
-        }).toList();
+                );
+
+        var ret = authorRepository.findByBook(isbn);
+        return ret.stream()
+                .map(obj -> {
+                    String newName = String.format("%s (%d)", obj.getName(), httpPort);
+                    obj.setName(newName);
+                    return obj;
+                }).toList();
     }
 }
+

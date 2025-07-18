@@ -4,7 +4,7 @@ plugins {
     id("io.quarkus") version "3.22.2"
 }
 
-group = "org.example"
+group = "com.programacion.distribuida"
 version = "unspecified"
 
 repositories {
@@ -44,9 +44,19 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-stork")
     implementation("io.smallrye.stork:stork-service-discovery-consul")
     implementation("io.smallrye.reactive:smallrye-mutiny-vertx-consul-client")
+
+    //health check
+    implementation("io.quarkus:quarkus-smallrye-health")
+
+    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+    implementation("io.quarkus:quarkus-jackson")
+
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
 }
+
+
+

@@ -15,13 +15,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @ApplicationScoped
 public class CustomerLifecycle {
-
-    private static final Logger LOGGER = Logger.getLogger(CustomerLifecycle.class.getName());
 
     @Inject
     @ConfigProperty(name = "consul.host", defaultValue = "127.0.0.1")
@@ -38,7 +34,7 @@ public class CustomerLifecycle {
     String serviceId;
 
     void init(@Observes StartupEvent event, Vertx vertx) throws Exception {
-        LOGGER.info("Iniciando servicio customersss...");
+        System.out.println("Starting Customers service...");
 
         ConsulClientOptions options = new ConsulClientOptions()
                 .setHost(consulHost)
@@ -48,17 +44,25 @@ public class CustomerLifecycle {
 
         serviceId = UUID.randomUUID().toString();
         var ipAddress = InetAddress.getLocalHost();
+
+        //--registro
+
         var tags = List.of(
                 "traefik.enable=true",
-                "traefik.http.routers.app-customers.rule=PathPrefix(`/app-customers`)",
+                //PathPrefix
+                "traefik.http.routers.app-customers.rule=PathPrefix(`/customers`)",
                 "traefik.http.routers.app-customers.middlewares=strip-prefix-customers",
-                "traefik.http.middlewares.strip-prefix-customers.stripprefix.prefixes=/app-customers"
+                "traefik.http.middlewares.strip-prefix-customers.stripPrefix.prefixes=/app-customers"
         );
 
-        var checkOptions = new CheckOptions()
-                .setHttp(String.format("http://%s:%s/ping", ipAddress.getHostAddress(), appPort))
+        var CheckOptions = new CheckOptions()
+                //.setHttp("http://127.0.0.1:9090/ping")
+                .setHttp(String.format("http://%s:%d/q/health/live", ipAddress.getHostAddress(), appPort))
                 .setInterval("10s")
                 .setDeregisterAfter("20s");
+
+
+
 
         ServiceOptions serviceOptions = new ServiceOptions()
                 .setName("app-customers")
@@ -66,30 +70,22 @@ public class CustomerLifecycle {
                 .setAddress(ipAddress.getHostAddress())
                 .setPort(appPort)
                 .setTags(tags)
-                .setCheckOptions(checkOptions);
+                .setCheckOptions(CheckOptions);
+
+
 
         consulClient.registerServiceAndAwait(serviceOptions);
-        LOGGER.info("Servicio registrado con ID: " + serviceId);
     }
 
     void stop(@Observes ShutdownEvent event, Vertx vertx) {
-        LOGGER.info("Deteniendo servicio customersss...");
+        System.out.println("Stopping Authors service...");
 
-        if (serviceId == null) {
-            LOGGER.warning("El serviceId es nulo. No se puede desregistrar el servicio.");
-            return;
-        }
+        ConsulClientOptions options = new ConsulClientOptions()
+                .setHost(consulHost)
+                .setPort(consulPort);
+        ConsulClient consulClient = ConsulClient.create(vertx, options);
 
-        try {
-            ConsulClientOptions options = new ConsulClientOptions()
-                    .setHost(consulHost)
-                    .setPort(consulPort);
-            ConsulClient consulClient = ConsulClient.create(vertx, options);
+        consulClient.deregisterServiceAndAwait(serviceId);
 
-            consulClient.deregisterServiceAndAwait(serviceId);
-            LOGGER.info("Servicio desregistrado con ID: " + serviceId);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al desregistrar el servicio: " + e.getMessage(), e);
-        }
     }
 }

@@ -20,11 +20,11 @@ import java.util.UUID;
 public class BooksLifecycle {
 
     @Inject
-    @ConfigProperty(name = "consul.host", defaultValue = "8500")
+    @ConfigProperty(name = "consul.host", defaultValue = "127.0.0.1")
     String consulHost;
 
     @Inject
-    @ConfigProperty(name = "consul.port", defaultValue = "127.0.0.1")
+    @ConfigProperty(name = "consul.port", defaultValue = "8500")
     Integer consulPort;
 
     @Inject
@@ -33,29 +33,36 @@ public class BooksLifecycle {
 
     String serviceId;
 
-
     void init(@Observes StartupEvent event, Vertx vertx) throws Exception {
-        System.out.println("Iniciando servicio de books...");
+        System.out.println("Starting Books service...");
 
         ConsulClientOptions options = new ConsulClientOptions()
                 .setHost(consulHost)
                 .setPort(consulPort);
+
         ConsulClient consulClient = ConsulClient.create(vertx, options);
 
         serviceId = UUID.randomUUID().toString();
         var ipAddress = InetAddress.getLocalHost();
 
+        //--registro
+
         var tags = List.of(
                 "traefik.enable=true",
-                "traefik.http.routers.app-books.rule=PathPrefix(`/app-books`)",
+                //PathPrefix
+                "traefik.http.routers.app-books.rule=PathPrefix(`/books`)",
                 "traefik.http.routers.app-books.middlewares=strip-prefix-books",
-                "traefik.http.middlewares.strip-prefix-books.stripprefix.prefixes=/app-books"
+                "traefik.http.middlewares.strip-prefix-books.stripPrefix.prefixes=/app-books"
         );
 
-        var checkOptions = new CheckOptions()
-                .setHttp(String.format(("http://%s:%s/ping"), ipAddress.getHostAddress(), appPort))
+        var CheckOptions = new CheckOptions()
+                //.setHttp("http://127.0.0.1:9090/ping")
+                .setHttp(String.format("http://%s:%d/q/health/live", ipAddress.getHostAddress(), appPort))
                 .setInterval("10s")
                 .setDeregisterAfter("20s");
+
+
+
 
         ServiceOptions serviceOptions = new ServiceOptions()
                 .setName("app-books")
@@ -63,14 +70,15 @@ public class BooksLifecycle {
                 .setAddress(ipAddress.getHostAddress())
                 .setPort(appPort)
                 .setTags(tags)
-                .setCheckOptions(checkOptions);
+                .setCheckOptions(CheckOptions);
+
+
 
         consulClient.registerServiceAndAwait(serviceOptions);
     }
 
-    void stop(@Observes ShutdownEvent event, Vertx vertx) throws Exception {
-
-        System.out.println("Deteniendo servicio de books...");
+    void stop(@Observes ShutdownEvent event, Vertx vertx) {
+        System.out.println("Stopping Authors service...");
 
         ConsulClientOptions options = new ConsulClientOptions()
                 .setHost(consulHost)
