@@ -115,6 +115,29 @@ services:
       - dbserver
       - consul
 
+  todos:
+    image: franjos09/app-todos:latest
+    environment:
+      QUARKUS_DATASOURCE_USERNAME: postgres
+      QUARKUS_DATASOURCE_PASSWORD: postgres
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://dbserver:5432/distribuidaclases
+      QUARKUS_HTTP_PORT: 8080
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+    ports:
+      - "7072:8080"
+    expose:
+      - "8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.todos.rule=PathPrefix(`/todos`)"
+      - "traefik.http.routers.todos.entrypoints=web"
+      - "traefik.http.routers.todos.priority=5"
+      - "traefik.http.services.todos.loadbalancer.server.port=8080"
+    depends_on:
+      - dbserver
+      - consul
+
   prometheus:
     image: prom/prometheus:latest
     volumes:
